@@ -1,15 +1,16 @@
 package op1;
 
-import Main.Calculadora;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import javax.swing.*;
 import javax.swing.JFrame;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
 
 public class CalculadoraCientifica extends JFrame {
+      private final List<String> expresion;
 
     public CalculadoraCientifica() {
+        expresion = new ArrayList<>();
         initComponents();
     }
 
@@ -38,16 +39,20 @@ public class CalculadoraCientifica extends JFrame {
         ac = new JButton();
         parentesisizq = new JButton();
         parentesisder = new JButton();
+        sen = new JButton ();
+        cos = new JButton ();
+        tan = new JButton ();
+        pi = new JButton ();
 
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("Calculadora Cientifica");
+        setTitle("Calculadora Básica");
 
         // Configuración del panel de la pantalla
         panel.setHorizontalAlignment(JTextField.RIGHT);
         panel.setEditable(true);
 
         // Configuración del panel principal
-        pantalla.setLayout(new GridLayout(5, 4, 10, 10));  // 5 filas, 4 columnas, espacio de 10px
+        pantalla.setLayout(new java.awt.GridLayout(5, 5, 10, 10));  // 5 filas, 4 columnas, espacio de 10px
         
         // Añadir botones al panel principal
         pantalla.add(ac);
@@ -70,6 +75,10 @@ public class CalculadoraCientifica extends JFrame {
         pantalla.add(punto);
         pantalla.add(del);
         pantalla.add(igual);
+        pantalla.add(sen);
+        pantalla.add(cos);
+        pantalla.add(tan);
+        pantalla.add(pi);
         
 
         // Establecer las etiquetas de los botones
@@ -93,8 +102,10 @@ public class CalculadoraCientifica extends JFrame {
         siete.setText("7");
         ocho.setText("8");
         nueve.setText("9");
-        
-        ActionListener();
+        sen.setText("sen"+parentesisizq);
+        cos.setText("cos"+parentesisizq);
+        tan.setText("tan"+parentesisizq);
+        pi.setText("π");
         
         GroupLayout layout = new GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -106,18 +117,17 @@ public class CalculadoraCientifica extends JFrame {
         layout.setVerticalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(panel, GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(panel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(pantalla, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE))
+                .addComponent(pantalla, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED))
         );
+        
+        ActionListener();
        
         pack();
     }
 
-    private void formWindowClosed(java.awt.event.WindowEvent evt) {
-        Calculadora calc = new Calculadora();
-        calc.setVisible(true);
-    }
 
     private void ActionListener(){
 // Métodos de eventos para los botones (por ahora vacíos)
@@ -140,33 +150,17 @@ public class CalculadoraCientifica extends JFrame {
     parentesisder.addActionListener(evt -> botonPresionado(")"));
     del.addActionListener(evt -> borrarUltimoCaracter());
     ac.addActionListener(evt -> limpiarPanel());
- 
+    igual.addActionListener(evt -> {
+    double resultado = evaluarExpresion();
+    panel.setText(String.valueOf(resultado));
+    expresion.clear();  // Limpia la lista para la próxima operación
+    expresion.add(String.valueOf(resultado));  // Permite usar el resultado para la próxima operación
+});
+    
     }
     
-    private void botonPresionado(String texto) {
-    String textoActual = panel.getText();
+    double pi=3.141592653589793;
     
-     if (textoActual.isEmpty() && operador(texto) && !texto.equals("-")) {
-        return; // No hace nada
-    }
-
-    // Si se presiona ")" pero no hay un "(", no se hace nada
-    if (texto.equals(")") && !hayParentesisIzq(textoActual)) {
-        return; // No hace nada
-    }
-    
-     if (textoActual.isEmpty() && operador(texto) && !texto.equals("-")) {
-        return; // No hace nada
-    }
-     
-    if (operador(textoActual) && operador(texto)) {
-        
-        panel.setText(textoActual.substring(0, textoActual.length() - 1) + texto);
-    } else {
-        // De lo contrario, simplemente se agrega el texto al final
-        panel.setText(textoActual + texto);
-    }
-}
     private boolean operador(String texto) {
     if (texto.isEmpty()) {
         return false;
@@ -189,6 +183,8 @@ public class CalculadoraCientifica extends JFrame {
 
     // Solo permite agregar ")" si hay más paréntesis izquierdos no cerrados
     return countIzq > countDer;
+    
+    
 }
 
     // Método para borrar el último carácter
@@ -203,13 +199,116 @@ public class CalculadoraCientifica extends JFrame {
     private void limpiarPanel() {
         panel.setText("");
     }
+    
+   private void botonPresionado(String texto) {
+    String textoActual = panel.getText();
+
+    if (textoActual.isEmpty() && operador(texto) && !texto.equals("-")) {
+        return; // No hace nada
+    }
+
+    // Si se presiona ")" pero no hay un "(", no se hace nada
+    if (texto.equals(")") && !hayParentesisIzq(textoActual)) {
+        return; // No hace nada
+    }
+
+    if (operador(textoActual) && operador(texto)) {
+        panel.setText(textoActual.substring(0, textoActual.length() - 1) + texto);
+    } else {
+        panel.setText(textoActual + texto);
+    }
+
+    // Agregar el texto a la lista de expresión
+    expresion.add(texto);
+}
+
+private double evaluarExpresion() {
+    Stack<Double> numeros = new Stack<>();
+    Stack<Character> operadores = new Stack<>();
+
+    // Convertir el contenido del panel a una lista de tokens
+    String expr = panel.getText();
+    String[] tokens = expr.split("(?<=[-+*/()])|(?=[-+*/()])");
+
+    for (String token : tokens) {
+        if (esNumero(token)) {
+            numeros.push(Double.valueOf(token));
+        } else if (esOperador(token.charAt(0))) {
+            while (!operadores.isEmpty() && precedencia(operadores.peek()) >= precedencia(token.charAt(0))) {
+                double b = numeros.pop();
+                double a = numeros.pop();
+                char operador = operadores.pop();
+                numeros.push(operar(a, b, operador));
+            }
+            operadores.push(token.charAt(0));
+        } else if (token.equals("(")) {
+            operadores.push('(');
+        } else if (token.equals(")")) {
+            while (operadores.peek() != '(') {
+                double b = numeros.pop();
+                double a = numeros.pop();
+                char operador = operadores.pop();
+                numeros.push(operar(a, b, operador));
+            }
+            operadores.pop();
+        }
+    }
+
+    while (!operadores.isEmpty()) {
+        double b = numeros.pop();
+        double a = numeros.pop();
+        char operador = operadores.pop();
+        numeros.push(operar(a, b, operador));
+    }
+
+    return numeros.pop();
+}
+
+
+private boolean esNumero(String token) {
+    try {
+        Double.valueOf(token);
+        return true;
+    } catch (NumberFormatException e) {
+        return false;
+    }
+}
+
+private boolean esOperador(char c) {
+    return c == '+' || c == '-' || c == '*' || c == '/';
+}
+
+private int precedencia(char operador) {
+          return switch (operador) {
+              case '+', '-' -> 1;
+              case '*', '/' -> 2;
+              default -> -1;
+          };
+}
+
+private double operar(double a, double b, char operador) {
+    switch (operador) {
+        case '+' -> {
+            return a + b;
+              }
+        case '-' -> {
+            return a - b;
+              }
+        case '*' -> {
+            return a * b;
+              }
+        case '/' -> {
+            return a / b;
+              }
+        default -> throw new IllegalArgumentException("Operador no válido: " + operador);
+    }
+}
+    
 
     
     public static void main(String args[]) {
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new CalculadoraCientifica().setVisible(true);
-            }
+        java.awt.EventQueue.invokeLater(() -> {
+            new CalculadoraCientifica().setVisible(true);
         });
     }
 
@@ -236,4 +335,9 @@ public class CalculadoraCientifica extends JFrame {
     private JButton suma;
     private JButton tres;
     private JButton uno;
+    private JButton sen;
+    private JButton cos;
+    private JButton tan;
+    private JButton pi;
+            
 }

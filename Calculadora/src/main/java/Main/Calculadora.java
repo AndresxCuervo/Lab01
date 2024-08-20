@@ -1,15 +1,22 @@
+//Andres Felipe Cuervo Palacios 7004284
+//Kevin Vargas
+
+
 package Main;
 
-import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import javax.swing.*;
 import op1.CalculadoraCientifica;
 import javax.swing.JFrame;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
 
 public class Calculadora extends JFrame {
+      private final List<String> expresion;
 
     public Calculadora() {
+        expresion = new ArrayList<>();
         initComponents();
     }
 
@@ -119,10 +126,6 @@ public class Calculadora extends JFrame {
         pack();
     }
 
-    private void formWindowClosed(java.awt.event.WindowEvent evt) {
-        Calculadora calc = new Calculadora();
-        calc.setVisible(true);
-    }
 
     private void ActionListener(){
 // Métodos de eventos para los botones (por ahora vacíos)
@@ -145,38 +148,21 @@ public class Calculadora extends JFrame {
     parentesisder.addActionListener(evt -> botonPresionado(")"));
     del.addActionListener(evt -> borrarUltimoCaracter());
     ac.addActionListener(evt -> limpiarPanel());
-    calculadorac.addActionListener(new ActionListener() {
-
-public void actionPerformed(ActionEvent e){
-    {calculadorac.setEnabled(!calculadorac.isEnabled());
-}
-                            new CalculadoraCientifica().setVisible(true);}});
+    igual.addActionListener(evt -> {
+    double resultado = evaluarExpresion();
+    panel.setText(String.valueOf(resultado));
+    expresion.clear();  // Limpia la lista para la próxima operación
+    expresion.add(String.valueOf(resultado));  // Permite usar el resultado para la próxima operación
+});
+    calculadorac.addActionListener((ActionEvent e) -> {
+        {calculadorac.setEnabled(!calculadorac.isEnabled());
+        }
+        new CalculadoraCientifica().setVisible(true);
+    });
     
     }
-    private void botonPresionado(String texto) {
-    String textoActual = panel.getText();
     
-     if (textoActual.isEmpty() && operador(texto) && !texto.equals("-")) {
-        return; // No hace nada
-    }
-
-    // Si se presiona ")" pero no hay un "(", no se hace nada
-    if (texto.equals(")") && !hayParentesisIzq(textoActual)) {
-        return; // No hace nada
-    }
     
-     if (textoActual.isEmpty() && operador(texto) && !texto.equals("-")) {
-        return; // No hace nada
-    }
-     
-    if (operador(textoActual) && operador(texto)) {
-        
-        panel.setText(textoActual.substring(0, textoActual.length() - 1) + texto);
-    } else {
-        // De lo contrario, simplemente se agrega el texto al final
-        panel.setText(textoActual + texto);
-    }
-}
     private boolean operador(String texto) {
     if (texto.isEmpty()) {
         return false;
@@ -199,6 +185,8 @@ public void actionPerformed(ActionEvent e){
 
     // Solo permite agregar ")" si hay más paréntesis izquierdos no cerrados
     return countIzq > countDer;
+    
+    
 }
 
     // Método para borrar el último carácter
@@ -213,13 +201,116 @@ public void actionPerformed(ActionEvent e){
     private void limpiarPanel() {
         panel.setText("");
     }
+    
+   private void botonPresionado(String texto) {
+    String textoActual = panel.getText();
+
+    if (textoActual.isEmpty() && operador(texto) && !texto.equals("-")) {
+        return; // No hace nada
+    }
+
+    // Si se presiona ")" pero no hay un "(", no se hace nada
+    if (texto.equals(")") && !hayParentesisIzq(textoActual)) {
+        return; // No hace nada
+    }
+
+    if (operador(textoActual) && operador(texto)) {
+        panel.setText(textoActual.substring(0, textoActual.length() - 1) + texto);
+    } else {
+        panel.setText(textoActual + texto);
+    }
+
+    // Agregar el texto a la lista de expresión
+    expresion.add(texto);
+}
+
+private double evaluarExpresion() {
+    Stack<Double> numeros = new Stack<>();
+    Stack<Character> operadores = new Stack<>();
+
+    // Convertir el contenido del panel a una lista de tokens
+    String expr = panel.getText();
+    String[] tokens = expr.split("(?<=[-+*/()])|(?=[-+*/()])");
+
+    for (String token : tokens) {
+        if (esNumero(token)) {
+            numeros.push(Double.valueOf(token));
+        } else if (esOperador(token.charAt(0))) {
+            while (!operadores.isEmpty() && precedencia(operadores.peek()) >= precedencia(token.charAt(0))) {
+                double b = numeros.pop();
+                double a = numeros.pop();
+                char operador = operadores.pop();
+                numeros.push(operar(a, b, operador));
+            }
+            operadores.push(token.charAt(0));
+        } else if (token.equals("(")) {
+            operadores.push('(');
+        } else if (token.equals(")")) {
+            while (operadores.peek() != '(') {
+                double b = numeros.pop();
+                double a = numeros.pop();
+                char operador = operadores.pop();
+                numeros.push(operar(a, b, operador));
+            }
+            operadores.pop();
+        }
+    }
+
+    while (!operadores.isEmpty()) {
+        double b = numeros.pop();
+        double a = numeros.pop();
+        char operador = operadores.pop();
+        numeros.push(operar(a, b, operador));
+    }
+
+    return numeros.pop();
+}
+
+
+private boolean esNumero(String token) {
+    try {
+        Double.valueOf(token);
+        return true;
+    } catch (NumberFormatException e) {
+        return false;
+    }
+}
+
+private boolean esOperador(char c) {
+    return c == '+' || c == '-' || c == '*' || c == '/';
+}
+
+private int precedencia(char operador) {
+          return switch (operador) {
+              case '+', '-' -> 1;
+              case '*', '/' -> 2;
+              default -> -1;
+          };
+}
+
+private double operar(double a, double b, char operador) {
+    switch (operador) {
+        case '+' -> {
+            return a + b;
+              }
+        case '-' -> {
+            return a - b;
+              }
+        case '*' -> {
+            return a * b;
+              }
+        case '/' -> {
+            return a / b;
+              }
+        default -> throw new IllegalArgumentException("Operador no válido: " + operador);
+    }
+}
+    
 
     
     public static void main(String args[]) {
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new Calculadora().setVisible(true);
-            }
+        java.awt.EventQueue.invokeLater(() -> {
+            new Calculadora().setVisible(true);
         });
     }
 
