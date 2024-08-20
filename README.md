@@ -1,2 +1,2 @@
-Andres Felipe Cuervo Palacios /n
+Andres Felipe Cuervo Palacios
 Kevin Vargas
